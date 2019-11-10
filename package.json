@@ -14,10 +14,13 @@
   "files": [
     "lib"
   ],
+  "publishConfig": {
+    "access": "public"
+  },  
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "predeploy": "yarn build"
+    "prepublishOnly": "yarn build"
   },
   "devDependencies": {
     "@types/jest": "^24.0.22",
@@ -25,7 +28,6 @@
     "jest": "^24.9.0",
     "prettier": "^1.19.1",
     "ts-jest": "^24.1.0",
-    "ts-node": "^8.4.1",
     "tslint": "^5.20.1",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.7.2"

@@ -68,7 +68,11 @@ export default class NaiveSocket {
     host,
     port,
     connectionRetryInterval = 0,
-    logger = console
+    logger = {
+      info: !!process.env.DEBUG ? console.info : () => 0,
+      warn: console.warn,
+      error: console.error
+    }
   }: INaiveSocketOptions) {
     this.host = host;
     this.port = port;
@@ -90,6 +94,7 @@ export default class NaiveSocket {
 
   public disconnect = () => {
     this.alive = false;
+    this.logger.info(`[NaiveSocket]`, `Socket is dead`);
     this.doDisconnect();
   };
 
@@ -116,7 +121,7 @@ export default class NaiveSocket {
   };
 
   private connect = () => {
-    console.debug(`start to connect`);
+    this.logger.info(`[NaiveSocket]`, `Start to connect`);
     this.connectionState = ConnectionState.Connecting;
     this.socket = new Socket();
     this.socket.addListener("connect", this.onConnect);
@@ -127,12 +132,16 @@ export default class NaiveSocket {
   };
 
   private doDisconnect = () => {
-    console.debug(`disconnect`);
     if (this.socket !== null) {
+      this.logger.info(`[NaiveSocket]`, `Disconnect`);
       try {
         this.socket.destroy();
       } catch (error) {
-        this.logger.warn(`Error occurred while disconnecting`, error);
+        this.logger.warn(
+          `[NaiveSocket]`,
+          `Error occurred while disconnecting`,
+          error
+        );
       }
     }
     this.connectionState = ConnectionState.Disconnected;
@@ -146,6 +155,7 @@ export default class NaiveSocket {
 
   private onClose = () => {
     if (this.alive) {
+      this.logger.info(`[NaiveSocket]`, `Try to reconnect`);
       this.retryToConnect();
     }
   };
@@ -168,7 +178,11 @@ export default class NaiveSocket {
   private onError = (error: Error) => {
     switch (this.connectionState) {
       case ConnectionState.Connecting:
-        this.logger.warn(`Cannot connect to the opposite`, error);
+        this.logger.warn(
+          `[NaiveSocket]`,
+          `Cannot connect to the opposite`,
+          error
+        );
         this.retryToConnect();
         break;
       case ConnectionState.Connected:
@@ -176,7 +190,11 @@ export default class NaiveSocket {
         break;
       case ConnectionState.Disconnected:
         // No error for this state.
-        this.logger.error(`Invalid error in disconnected state`, error);
+        this.logger.error(
+          `[NaiveSocket]`,
+          `Invalid error in disconnected state`,
+          error
+        );
         break;
     }
   };

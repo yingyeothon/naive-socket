@@ -67,7 +67,7 @@ export default class NaiveSocket {
   constructor({
     host,
     port,
-    connectionRetryInterval = 0,
+    connectionRetryInterval = 5000,
     logger = {
       info: !!process.env.DEBUG ? console.info : () => 0,
       warn: console.warn,
@@ -165,7 +165,7 @@ export default class NaiveSocket {
     if (this.sendWorks.length === 0) {
       return;
     }
-    if (this.connectionRetryInterval <= 0) {
+    if (this.connectionRetryInterval < 0) {
       return;
     }
     setTimeout(() => {
@@ -183,7 +183,7 @@ export default class NaiveSocket {
           `Cannot connect to the opposite`,
           error
         );
-        this.retryToConnect();
+        // Try to reconnect at `onClose` handler if alive.
         break;
       case ConnectionState.Connected:
         // This error would be catched at onSend handler.

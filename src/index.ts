@@ -96,6 +96,15 @@ export default class NaiveSocket {
     this.alive = false;
     this.logger.info(`[NaiveSocket]`, `Socket is dead`);
     this.doDisconnect();
+
+    // Reject all send works.
+    while (this.sendWorks.length > 0) {
+      const work = this.sendWorks.shift()!;
+      if (work.timer !== null) {
+        clearTimeout(work.timer);
+      }
+      work.dPromise.reject(new Error(`DeadSocket`));
+    }
   };
 
   private buildSendWork = ({

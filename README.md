@@ -24,18 +24,12 @@ const naiveSocket = new NaiveSocket({
   port: 6379
 });
 
-const fulfillByRegex = (regex: RegExp) => (buffer: string) => {
-  const match = buffer.match(regex);
-  return match ? match[1].length : -1;
-};
-
 export const enqueueGameMessage = (gameId: string, message: any) =>
   naiveSocket.send({
     message: [
       `RPUSH "queue/${gameId}" "${JSON.stringify(JSON.stringify(message))}"`,
       ``
     ].join(redisNewline),
-    isFulfilled: fulfillByRegex(/^(.+\r\n)/),
     timeoutMillis: 1000
   });
 
@@ -44,10 +38,7 @@ export const loadGameId = (userId: string) =>
     .send({
       message: [`GET "gameId/${userId}"`, ``].join(redisNewline),
       // When the pattern of gameId is UUID.
-      isFulfilled: fulfillByRegex(
-        /^(\$[0-9]+\r\n(?:[0-9A-Za-z_\-]+)\r\n|\$-1\r\n)/
-      ),
-      timeoutMillis: 1000
+      isFulfilled: /^(\$[0-9]+\r\n(?:[0-9A-Za-z_\-]+)\r\n|\$-1\r\n)/
     })
     .then(response => response.match(/([0-9A-F\-]+)\r\n/)[1] || "");
 ```

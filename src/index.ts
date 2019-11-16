@@ -26,7 +26,7 @@ interface ISendWorkOptions {
    * If the return value is a positive it would accept a buffer with that length,
    * otherwise wait more response would be come.
    */
-  isFulfilled: (buffer: string) => number;
+  isFulfilled: ((buffer: string) => number) | RegExp;
 
   /**
    * A milliseconds to timeout this send work.
@@ -202,7 +202,10 @@ export default class NaiveSocket {
   private onData = (data: Buffer) => {
     this.currentBuffer += data.toString("utf-8");
     const work = this.sendWorks[0];
-    const length = work.isFulfilled(this.currentBuffer);
+    const length =
+      work.isFulfilled instanceof RegExp
+        ? isFulfilledByRegex(work.isFulfilled, this.currentBuffer)
+        : work.isFulfilled(this.currentBuffer);
     if (length <= 0) {
       return;
     }
@@ -255,3 +258,8 @@ export default class NaiveSocket {
     });
   };
 }
+
+const isFulfilledByRegex = (regex: RegExp, buffer: string) => {
+  const match = buffer.match(regex);
+  return match ? match[1].length : -1;
+};

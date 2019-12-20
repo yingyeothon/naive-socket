@@ -10,7 +10,7 @@ interface INaiveSocketOptions {
     logger?: ILogger;
 }
 interface ISendWorkOptions {
-    isFulfilled: ((buffer: string) => number) | RegExp;
+    fulfill: ((buffer: string) => number) | RegExp | number;
     timeoutMillis: number;
 }
 interface ISendWorkArguments {

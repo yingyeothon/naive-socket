@@ -10,10 +10,9 @@ This library is a very naive wrapper of `net.Socket` so it doesn't have function
 
 ## Example
 
-This is a simple example to communicate with Redis with 2 cases.
+### Fire and forget
 
-1. Send a message via Redis queue.
-2. Retrieve a gameId by userId.
+This is a simple example when we don't expect the boundary of message. It would return any message that returns from the server immediately. So please be careful this message can be truncated because this function can finish before a message fully reached.
 
 ```typescript
 import NaiveSocket from "@yingyeothon/naive-socket";
@@ -24,6 +23,32 @@ const naiveSocket = new NaiveSocket({
   port: 6379
 });
 
+export const ping = () =>
+  naiveSocket.send({
+    message: [`PING`, ``].join(redisNewline)
+  });
+```
+
+### Using Length
+
+Or, we can wait by the length of expected response when we know the exact length of the message that we want to receive. It helps ensure the message boundary when we communicate multiple commands in this one connection.
+
+```typescript
+export const ping = () =>
+  naiveSocket.send({
+    message: [`PING`, ``].join(redisNewline),
+    fulfill: `+PONG`.length
+  });
+```
+
+### Using RegExp
+
+Or, in some cases, `RegExp` is more useful to check the correct message. This is a simple example to communicate with Redis with 2 cases.
+
+1. Send a message via Redis queue.
+2. Retrieve a gameId by userId.
+
+```typescript
 export const enqueueGameMessage = (gameId: string, message: any) =>
   naiveSocket.send({
     message: [
@@ -38,9 +63,45 @@ export const loadGameId = (userId: string) =>
     .send({
       message: [`GET "gameId/${userId}"`, ``].join(redisNewline),
       // When the pattern of gameId is UUID.
-      isFulfilled: /^(\$[0-9]+\r\n(?:[0-9A-Za-z_\-]+)\r\n|\$-1\r\n)/
+      fulfill: /^(\$[0-9]+\r\n(?:[0-9A-Za-z_\-]+)\r\n|\$-1\r\n)/,
+      timeoutMillis: 1000
     })
     .then(response => response.match(/([0-9A-F\-]+)\r\n/)[1] || "");
+```
+
+`timeoutMillis` will help us to prevent infinitely waiting due to invalid `RegExp`.
+
+### Using Matcher
+
+If we want to receive more complex response, for example, like the response of `SMEMBERS` in Redis, we can use `Matcher` for this.
+
+```typescript
+import { withMatcher } from "@yingyeothon/naive-socket/match";
+
+export const loadMembers = (membersKey: string) =>
+  naiveSocket.send({
+    message: [`SMEMBERS "${membersKey}"`, ``].join(redisNewline),
+    /* This is the pattern of its result.
+     * *COUNT\r\n
+     * $LENGTH\r\n
+     * SOMETHING-VALUE\r\n
+     * ...
+     */
+    fulfill: withMatcher(m =>
+      m
+        .check("*")
+        .capture("\r\n") // Now, 0 means the count of values.
+        .loop(
+          0,
+          (/* loopIndex */) =>
+            m
+              .check("$")
+              .capture("\r\n") // (1 + 2 * loopIndex) means the length of value.
+              .capture("\r\n") // (1 + 2 * loopIndex + 1) means the actual value.
+        )
+    ),  
+    timeoutMillis: 1000
+  });
 ```
 
 ## License

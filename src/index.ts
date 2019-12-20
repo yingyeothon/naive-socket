@@ -26,7 +26,7 @@ interface ISendWorkOptions {
    * If the return value is a positive it would accept a buffer with that length,
    * otherwise wait more response would be come.
    */
-  isFulfilled: ((buffer: string) => number) | RegExp;
+  fulfill: ((buffer: string) => number) | RegExp | number;
 
   /**
    * A milliseconds to timeout this send work.
@@ -109,12 +109,12 @@ export default class NaiveSocket {
 
   private buildSendWork = ({
     message,
-    isFulfilled = buffer => buffer.length,
+    fulfill = buffer => buffer.length,
     timeoutMillis = 0
   }: ISendWorkArguments & Partial<ISendWorkOptions>): ISendWork => {
     const newWork: ISendWork = {
       message,
-      isFulfilled,
+      fulfill,
       timeoutMillis,
       dPromise: decomposePromise<string>(),
       timer: null
@@ -211,10 +211,23 @@ export default class NaiveSocket {
   private onData = (data: Buffer) => {
     this.currentBuffer += data.toString("utf-8");
     const work = this.sendWorks[0];
+    if (!work) {
+      this.logger.error(
+        `[NaiveSocket]`,
+        `No work but more response`,
+        this.currentBuffer
+      );
+      this.currentBuffer = "";
+      return;
+    }
+
+    const { fulfill } = work;
     const length =
-      work.isFulfilled instanceof RegExp
-        ? isFulfilledByRegex(work.isFulfilled, this.currentBuffer)
-        : work.isFulfilled(this.currentBuffer);
+      fulfill instanceof RegExp
+        ? fulfillByRegex(fulfill, this.currentBuffer)
+        : typeof fulfill === "number"
+        ? fulfillByLength(fulfill, this.currentBuffer)
+        : fulfill(this.currentBuffer);
     if (length <= 0) {
       return;
     }
@@ -268,7 +281,10 @@ export default class NaiveSocket {
   };
 }
 
-const isFulfilledByRegex = (regex: RegExp, buffer: string) => {
+const fulfillByRegex = (regex: RegExp, buffer: string) => {
   const match = buffer.match(regex);
   return match ? match[1].length : -1;
 };
+
+const fulfillByLength = (length: number, buffer: string) =>
+  buffer.length >= length ? length : -1;

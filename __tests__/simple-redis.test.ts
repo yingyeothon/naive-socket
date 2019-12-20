@@ -1,4 +1,5 @@
 import NaiveSocket from "../src";
+import Matcher, { withMatcher } from "../src/match";
 
 const newSocketForRedis = () =>
   new NaiveSocket({
@@ -71,12 +72,12 @@ test(
     const uuid = `8aede689-bb97-4a3a-8d1e-7f0edf6bd850`;
     const set = await ns.send({
       message: encode([["SET", "complex-value", uuid]]),
-      isFulfilled: /^(\+OK\r\n)$/
+      fulfill: /^(\+OK\r\n)$/
     });
     expect(set).toEqual("+OK\r\n");
     const get = await ns.send({
       message: encode([["GET", "complex-value"]]),
-      isFulfilled: /^(\$[0-9]+\r\n[0-9A-Za-z\-]+\r\n)$/
+      fulfill: /^(\$[0-9]+\r\n[0-9A-Za-z\-]+\r\n)$/
     });
     expect(get).toEqual(`$${uuid.length}\r\n${uuid}\r\n`);
   })
@@ -87,13 +88,13 @@ test(
   redisWork(async ns => {
     const set = await ns.send({
       message: `SET "wrong-pattern" "12345"\r\n`,
-      isFulfilled: /^(\+OK\r\n)$/
+      fulfill: /^(\+OK\r\n)$/
     });
     expect(set).toEqual("+OK\r\n");
     try {
       await ns.send({
         message: `GET "wrong-pattern"\r\n`,
-        isFulfilled: /^(\$[0-9]+\r\n[A-Z]+\r\n)$/,
+        fulfill: /^(\$[0-9]+\r\n[A-Z]+\r\n)$/,
         timeoutMillis: 100
       });
       fail();
@@ -114,5 +115,96 @@ test(
       ])
     });
     expect(set).toEqual("+OK\r\n+OK\r\n+OK\r\n");
+  })
+);
+
+test(
+  "set-add-remove",
+  redisWork(async ns => {
+    const expected = ":1\r\n:1\r\n:0\r\n:0\r\n:1\r\n";
+    const set = await ns.send({
+      message: encode([
+        ["SADD", "test-my-set", "12345"],
+        ["SADD", "test-my-set", "34567"],
+        ["SADD", "test-my-set", "12345"],
+        ["SREM", "test-my-set", "23456"],
+        ["SREM", "test-my-set", "12345"]
+      ]),
+      fulfill: expected.length,
+      timeoutMillis: 1000
+    });
+    expect(set).toEqual(expected);
+  })
+);
+
+test(
+  "set-add-members",
+  redisWork(async ns => {
+    const expected = [
+      ":1",
+      ":1",
+      ":0",
+      "*2",
+      "$5",
+      "12345",
+      "$5",
+      "34567",
+      ""
+    ].join("\r\n");
+    const set = await ns.send({
+      message: encode([
+        ["SADD", "test-my-set2", "12345"],
+        ["SADD", "test-my-set2", "34567"],
+        ["SADD", "test-my-set2", "12345"],
+        ["SMEMBERS", "test-my-set2"]
+      ]),
+      fulfill: expected.length,
+      timeoutMillis: 1000
+    });
+    expect(set).toEqual(expected);
+  })
+);
+
+test(
+  "set-add-members-with-check",
+  redisWork(async ns => {
+    const setAnswer = [":1", ":1", ":0", ""].join("\r\n");
+    const set = await ns.send({
+      message: encode([
+        ["SADD", "test-my-set3", "12345"],
+        ["SADD", "test-my-set3", "abcde"],
+        ["SADD", "test-my-set3", "12345"]
+      ]),
+      fulfill: setAnswer.length,
+      timeoutMillis: 1000
+    });
+    expect(set).toEqual(setAnswer);
+
+    const m = (r: Matcher) =>
+      r
+        .check("*")
+        .capture("\r\n")
+        .loop(0, () =>
+          r
+            .check("$")
+            .capture("\r\n")
+            // .forward(+r.value(1 + i, "0"))
+            // .check("\r\n")
+            .capture("\r\n")
+        );
+    const membersAnswer = ["*2", "$5", "abcde", "$5", "12345", ""].join("\r\n");
+    const members = await ns.send({
+      message: encode([["SMEMBERS", "test-my-set3"]]),
+      fulfill: withMatcher(m),
+      timeoutMillis: 1000
+    });
+    expect(members).toEqual(membersAnswer);
+    expect(m(new Matcher(members)).values()).toEqual([
+      "2",
+      "5",
+      "abcde",
+      "5",
+      "12345"
+    ]);
   })
 );

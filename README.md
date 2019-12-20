@@ -76,7 +76,7 @@ export const loadGameId = (userId: string) =>
 If we want to receive more complex response, for example, like the response of `SMEMBERS` in Redis, we can use `Matcher` for this.
 
 ```typescript
-import { withMatcher } from "@yingyeothon/naive-socket/match";
+import { withMatcher } from "@yingyeothon/naive-socket/lib/match";
 
 export const loadMembers = (membersKey: string) =>
   naiveSocket.send({
@@ -99,7 +99,7 @@ export const loadMembers = (membersKey: string) =>
               .capture("\r\n") // (1 + 2 * loopIndex) means the length of value.
               .capture("\r\n") // (1 + 2 * loopIndex + 1) means the actual value.
         )
-    ),  
+    ),
     timeoutMillis: 1000
   });
 ```

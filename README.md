@@ -71,12 +71,12 @@ export const loadGameId = (userId: string) =>
 
 `timeoutMillis` will help us to prevent infinitely waiting due to invalid `RegExp`.
 
-### Using Matcher
+### Using TextMatch
 
-If we want to receive more complex response, for example, like the response of `SMEMBERS` in Redis, we can use `Matcher` for this.
+If we want to receive more complex response, for example, like the response of `SMEMBERS` in Redis, we can use `TextMatch` for this.
 
 ```typescript
-import { withMatcher } from "@yingyeothon/naive-socket/lib/match";
+import { withMatch } from "@yingyeothon/naive-socket/lib/match";
 
 export const loadMembers = (membersKey: string) =>
   naiveSocket.send({
@@ -87,19 +87,17 @@ export const loadMembers = (membersKey: string) =>
      * SOMETHING-VALUE\r\n
      * ...
      */
-    fulfill: withMatcher(m =>
-      m
-        .check("*")
-        .capture("\r\n") // Now, 0 means the count of values.
-        .loop(
-          0,
-          (/* loopIndex */) =>
-            m
-              .check("$")
-              .capture("\r\n") // (1 + 2 * loopIndex) means the length of value.
-              .capture("\r\n") // (1 + 2 * loopIndex + 1) means the actual value.
-        )
-    ),
+    fulfill: withMatch(m => {
+      let count = +m
+        .capture("\r\n") // Read the first line,
+        .values()[0]
+        .slice(1); // And parse the count from "*COUNT".
+      while (count-- > 0) {
+        m.capture("\r\n") // Read a length of next line,
+          .capture("\r\n"); // Read a value.
+      }
+      return m;
+    }),
     timeoutMillis: 1000
   });
 ```

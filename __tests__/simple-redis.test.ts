@@ -1,5 +1,5 @@
 import NaiveSocket from "../src";
-import Matcher, { withMatcher } from "../src/match";
+import TextMatch, { withMatch } from "../src/match";
 
 const newSocketForRedis = () =>
   new NaiveSocket({
@@ -171,40 +171,35 @@ test(
     const setAnswer = [":1", ":1", ":0", ""].join("\r\n");
     const set = await ns.send({
       message: encode([
-        ["SADD", "test-my-set3", "12345"],
+        ["SADD", "test-my-set3", "123456"],
         ["SADD", "test-my-set3", "abcde"],
-        ["SADD", "test-my-set3", "12345"]
+        ["SADD", "test-my-set3", "123456"]
       ]),
       fulfill: setAnswer.length,
       timeoutMillis: 1000
     });
     expect(set).toEqual(setAnswer);
 
-    const m = (r: Matcher) =>
-      r
-        .check("*")
+    const match = (m: TextMatch) => {
+      let count = +m
         .capture("\r\n")
-        .loop(0, () =>
-          r
-            .check("$")
-            .capture("\r\n")
-            // .forward(+r.value(1 + i, "0"))
-            // .check("\r\n")
-            .capture("\r\n")
-        );
-    const membersAnswer = ["*2", "$5", "abcde", "$5", "12345", ""].join("\r\n");
+        .values()[0]
+        .slice(1);
+      while (count-- > 0) {
+        m.capture("\r\n").capture("\r\n");
+      }
+      return m;
+    };
+    const membersAnswer = ["*2", "$5", "abcde", "$6", "123456"];
     const members = await ns.send({
       message: encode([["SMEMBERS", "test-my-set3"]]),
-      fulfill: withMatcher(m),
+      fulfill: withMatch(match),
       timeoutMillis: 1000
     });
-    expect(members).toEqual(membersAnswer);
-    expect(m(new Matcher(members)).values()).toEqual([
-      "2",
-      "5",
-      "abcde",
-      "5",
-      "12345"
-    ]);
+    expect(
+      match(new TextMatch(members))
+        .values()
+        .sort()
+    ).toEqual(membersAnswer.sort());
   })
 );

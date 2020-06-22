@@ -14,7 +14,7 @@ interface INaiveSocketOptions {
     logger?: ILogger;
     onConnectionStateChanged?: ConnectionStateListener;
 }
-declare enum ConnectionState {
+export declare enum ConnectionState {
     Connecting = "Connecting",
     Connected = "Connected",
     Disconnected = "Disconnected"
@@ -22,6 +22,7 @@ declare enum ConnectionState {
 interface ISendWorkOptions {
     fulfill: ((buffer: string) => number) | RegExp | number;
     timeoutMillis: number;
+    urgent?: boolean;
 }
 interface ISendWorkArguments {
     message: string;

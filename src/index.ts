@@ -8,11 +8,17 @@ interface ILogger {
   error: typeof console.error;
 }
 
+type ConnectionStateListener = (params: {
+  socket: NaiveSocket;
+  state: ConnectionState;
+}) => void;
+
 interface INaiveSocketOptions {
   host: string;
   port: number;
   connectionRetryInterval?: number;
   logger?: ILogger;
+  onConnectionStateChanged?: ConnectionStateListener;
 }
 
 enum ConnectionState {
@@ -56,6 +62,7 @@ export default class NaiveSocket {
   private readonly host: string;
   private readonly port: number;
   private readonly logger: ILogger;
+  private readonly onConnectionStateChanged: ConnectionStateListener;
 
   private readonly sendWorks: ISendWork[] = [];
   private currentBuffer: string = "";
@@ -74,11 +81,13 @@ export default class NaiveSocket {
       warn: console.warn,
       error: console.error,
     },
+    onConnectionStateChanged = () => 0,
   }: INaiveSocketOptions) {
     this.host = host;
     this.port = port;
     this.connectionRetryInterval = connectionRetryInterval;
     this.logger = logger;
+    this.onConnectionStateChanged = onConnectionStateChanged;
   }
 
   public send = (
@@ -130,9 +139,14 @@ export default class NaiveSocket {
     return newWork;
   };
 
+  private changeConnectionState = (newConnectionState: ConnectionState) => {
+    this.connectionState = newConnectionState;
+    this.onConnectionStateChanged({ socket: this, state: newConnectionState });
+  };
+
   private connect = () => {
     this.logger.info(`[NaiveSocket]`, `Start to connect`);
-    this.connectionState = ConnectionState.Connecting;
+    this.changeConnectionState(ConnectionState.Connecting);
     this.socket = new Socket();
     this.socket.addListener("connect", this.onConnect);
     this.socket.addListener("error", this.onError);
@@ -154,12 +168,12 @@ export default class NaiveSocket {
         );
       }
     }
-    this.connectionState = ConnectionState.Disconnected;
+    this.changeConnectionState(ConnectionState.Disconnected);
     this.socket = null;
   };
 
   private onConnect = () => {
-    this.connectionState = ConnectionState.Connected;
+    this.changeConnectionState(ConnectionState.Connected);
     this.doNextSendWork();
   };
 

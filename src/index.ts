@@ -21,7 +21,7 @@ interface INaiveSocketOptions {
   onConnectionStateChanged?: ConnectionStateListener;
 }
 
-enum ConnectionState {
+export enum ConnectionState {
   Connecting = "Connecting",
   Connected = "Connected",
   Disconnected = "Disconnected",
@@ -39,6 +39,11 @@ interface ISendWorkOptions {
    * A milliseconds to timeout this send work.
    */
   timeoutMillis: number;
+
+  /**
+   * A flag to add this send work into the front of queue.
+   */
+  urgent?: boolean;
 }
 
 interface ISendWorkArguments {
@@ -95,7 +100,11 @@ export default class NaiveSocket {
   ): Promise<string> => {
     this.alive = true;
     const newWork = this.buildSendWork(request);
-    this.sendWorks.push(newWork);
+    if (request.urgent) {
+      this.sendWorks.unshift(newWork);
+    } else {
+      this.sendWorks.push(newWork);
+    }
     if (this.sendWorks.length === 1) {
       this.doNextSendWork();
     }

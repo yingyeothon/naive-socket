@@ -1,5 +1,6 @@
+import { IDecomposedPromise, decomposePromise } from "./promise";
+
 import { Socket } from "net";
-import { decomposePromise, IDecomposedPromise } from "./promise";
 
 interface ILogger {
   info: typeof console.info;
@@ -17,7 +18,7 @@ interface INaiveSocketOptions {
 enum ConnectionState {
   Connecting = "Connecting",
   Connected = "Connected",
-  Disconnected = "Disconnected"
+  Disconnected = "Disconnected",
 }
 
 interface ISendWorkOptions {
@@ -71,8 +72,8 @@ export default class NaiveSocket {
     logger = {
       info: !!process.env.DEBUG ? console.info : () => 0,
       warn: console.warn,
-      error: console.error
-    }
+      error: console.error,
+    },
   }: INaiveSocketOptions) {
     this.host = host;
     this.port = port;
@@ -109,15 +110,15 @@ export default class NaiveSocket {
 
   private buildSendWork = ({
     message,
-    fulfill = buffer => buffer.length,
-    timeoutMillis = 0
+    fulfill = (buffer) => buffer.length,
+    timeoutMillis = 0,
   }: ISendWorkArguments & Partial<ISendWorkOptions>): ISendWork => {
     const newWork: ISendWork = {
       message,
       fulfill,
       timeoutMillis,
       dPromise: decomposePromise<string>(),
-      timer: null
+      timer: null,
     };
     if (timeoutMillis > 0) {
       newWork.timer = setTimeout(

@@ -22,7 +22,7 @@ class DecomposedPromise<T> implements IDecomposedPromise<T> {
     return this.resolved;
   }
 
-  public resolve: Resolve<T> = result => {
+  public resolve: Resolve<T> = (result) => {
     if (this.resolved) {
       return;
     }
@@ -30,7 +30,7 @@ class DecomposedPromise<T> implements IDecomposedPromise<T> {
     this.resolveProxy(result);
   };
 
-  public reject: Reject = reason => {
+  public reject: Reject = (reason) => {
     if (this.resolved) {
       return;
     }

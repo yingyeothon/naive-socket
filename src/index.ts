@@ -251,13 +251,8 @@ export default class NaiveSocket {
       return;
     }
 
-    // If no more works, stop.
-    if (this.sendWorks.length === 0) {
-      return;
-    }
-
     // Drop timeout occurred works.
-    while (this.sendWorks[0].dPromise.isResolved) {
+    while (this.sendWorks[0]?.dPromise?.isResolved === true) {
       this.sendWorks.shift();
     }
 

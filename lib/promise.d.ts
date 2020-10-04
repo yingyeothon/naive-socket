@@ -1,7 +1,7 @@
-export interface IDecomposedPromise<T> {
+export interface DecomposedPromise<T> {
     promise: Promise<T>;
     isResolved: boolean;
     resolve: (result: T) => void;
-    reject: (reason?: any) => void;
+    reject: (reason?: unknown) => void;
 }
-export declare const decomposePromise: <T>() => IDecomposedPromise<T>;
+export declare const decomposePromise: <T>() => DecomposedPromise<T>;

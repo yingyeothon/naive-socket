@@ -1,16 +1,16 @@
-export interface IDecomposedPromise<T> {
+export interface DecomposedPromise<T> {
   promise: Promise<T>;
   isResolved: boolean;
 
   resolve: (result: T) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
 }
 
 type Resolve<T> = (result: T) => void;
-type Reject = (reason?: any) => void;
+type Reject = (reason?: unknown) => void;
 
-class DecomposedPromise<T> implements IDecomposedPromise<T> {
-  private resolved: boolean = false;
+class DecomposedPromiseImpl<T> implements DecomposedPromise<T> {
+  private resolved = false;
 
   constructor(
     public readonly promise: Promise<T>,
@@ -39,12 +39,12 @@ class DecomposedPromise<T> implements IDecomposedPromise<T> {
   };
 }
 
-export const decomposePromise = <T>(): IDecomposedPromise<T> => {
+export const decomposePromise = <T>(): DecomposedPromise<T> => {
   let resolve: Resolve<T> | undefined;
   let reject: Reject | undefined;
   const promise = new Promise<T>((newResolve, newReject) => {
     resolve = newResolve;
     reject = newReject;
   });
-  return new DecomposedPromise<T>(promise, resolve!, reject!);
+  return new DecomposedPromiseImpl<T>(promise, resolve!, reject!);
 };

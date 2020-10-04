@@ -1,8 +1,8 @@
-import { IDecomposedPromise, decomposePromise } from "./promise";
+import { DecomposedPromise, decomposePromise } from "./promise";
 
 import { Socket } from "net";
 
-interface ILogger {
+interface Logger {
   info: typeof console.info;
   warn: typeof console.warn;
   error: typeof console.error;
@@ -13,11 +13,11 @@ type ConnectionStateListener = (params: {
   state: ConnectionState;
 }) => void;
 
-interface INaiveSocketOptions {
+interface NaiveSocketOptions {
   host: string;
   port: number;
   connectionRetryInterval?: number;
-  logger?: ILogger;
+  logger?: Logger;
   onConnectionStateChanged?: ConnectionStateListener;
 }
 
@@ -27,7 +27,7 @@ export enum ConnectionState {
   Disconnected = "Disconnected",
 }
 
-interface ISendWorkOptions {
+interface SendWorkOptions {
   /**
    * A function to check if a buffer is fulfilled for my request.
    * If the return value is a positive it would accept a buffer with that length,
@@ -46,34 +46,34 @@ interface ISendWorkOptions {
   urgent?: boolean;
 }
 
-interface ISendWorkArguments {
+interface SendWorkArguments {
   /**
    * A thing to do send.
    */
   message: string;
 }
 
-interface ISendWorkInternal {
-  dPromise: IDecomposedPromise<string>;
+interface SendWorkInternal {
+  dPromise: DecomposedPromise<string>;
   timer: NodeJS.Timer | null;
 }
 
 interface ISendWork
-  extends ISendWorkInternal,
-    ISendWorkArguments,
-    ISendWorkOptions {}
+  extends SendWorkInternal,
+    SendWorkArguments,
+    SendWorkOptions {}
 
 export default class NaiveSocket {
   private readonly host: string;
   private readonly port: number;
-  private readonly logger: ILogger;
+  private readonly logger: Logger;
   private readonly onConnectionStateChanged: ConnectionStateListener;
 
   private readonly sendWorks: ISendWork[] = [];
-  private currentBuffer: string = "";
+  private currentBuffer = "";
   private connectionState: ConnectionState = ConnectionState.Disconnected;
   private socket: Socket | null = null;
-  private alive: boolean = true;
+  private alive = true;
 
   private connectionRetryInterval: number;
 
@@ -87,7 +87,7 @@ export default class NaiveSocket {
       error: console.error,
     },
     onConnectionStateChanged = () => 0,
-  }: INaiveSocketOptions) {
+  }: NaiveSocketOptions) {
     this.host = host;
     this.port = port;
     this.connectionRetryInterval = connectionRetryInterval;
@@ -96,7 +96,7 @@ export default class NaiveSocket {
   }
 
   public send = (
-    request: ISendWorkArguments & Partial<ISendWorkOptions>
+    request: SendWorkArguments & Partial<SendWorkOptions>
   ): Promise<string> => {
     this.alive = true;
     const newWork = this.buildSendWork(request);
@@ -111,7 +111,7 @@ export default class NaiveSocket {
     return newWork.dPromise.promise;
   };
 
-  public disconnect = () => {
+  public disconnect = (): void => {
     this.alive = false;
     this.logger.info(`[NaiveSocket]`, `Socket is dead`);
     this.doDisconnect();
@@ -130,7 +130,7 @@ export default class NaiveSocket {
     message,
     fulfill = (buffer) => buffer.length,
     timeoutMillis = 0,
-  }: ISendWorkArguments & Partial<ISendWorkOptions>): ISendWork => {
+  }: SendWorkArguments & Partial<SendWorkOptions>): ISendWork => {
     const newWork: ISendWork = {
       message,
       fulfill,

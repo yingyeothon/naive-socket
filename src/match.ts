@@ -1,14 +1,14 @@
-const debug = (...args: any[]) =>
+const debug = (...args: unknown[]) =>
   !!process.env.DEBUG ? console.debug(`[TEXT_MATCH]`, ...args) : 0;
 
 export default class TextMatch {
   private captured: string[] = [];
-  private pos: number = 0;
-  private error: boolean = false;
+  private pos = 0;
+  private error = false;
 
   constructor(private readonly buffer: string) {}
 
-  public capture(endMark: string) {
+  public capture(endMark: string): this {
     if (this.error) {
       return this;
     }
@@ -32,16 +32,16 @@ export default class TextMatch {
     return this;
   }
 
-  public values() {
+  public values(): string[] {
     return [...this.captured];
   }
 
-  public evaluate() {
+  public evaluate(): number {
     return this.error ? -1 : this.pos;
   }
 }
 
 export type TextMatchChain = (m: TextMatch) => TextMatch;
 
-export const withMatch = (check: TextMatchChain) => (buffer: string) =>
+export const withMatch = (check: TextMatchChain) => (buffer: string): number =>
   check(new TextMatch(buffer)).evaluate();

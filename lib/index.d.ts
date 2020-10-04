@@ -1,4 +1,4 @@
-interface ILogger {
+interface Logger {
     info: typeof console.info;
     warn: typeof console.warn;
     error: typeof console.error;
@@ -7,11 +7,11 @@ declare type ConnectionStateListener = (params: {
     socket: NaiveSocket;
     state: ConnectionState;
 }) => void;
-interface INaiveSocketOptions {
+interface NaiveSocketOptions {
     host: string;
     port: number;
     connectionRetryInterval?: number;
-    logger?: ILogger;
+    logger?: Logger;
     onConnectionStateChanged?: ConnectionStateListener;
 }
 export declare enum ConnectionState {
@@ -19,12 +19,12 @@ export declare enum ConnectionState {
     Connected = "Connected",
     Disconnected = "Disconnected"
 }
-interface ISendWorkOptions {
+interface SendWorkOptions {
     fulfill: ((buffer: string) => number) | RegExp | number;
     timeoutMillis: number;
     urgent?: boolean;
 }
-interface ISendWorkArguments {
+interface SendWorkArguments {
     message: string;
 }
 export default class NaiveSocket {
@@ -38,8 +38,8 @@ export default class NaiveSocket {
     private socket;
     private alive;
     private connectionRetryInterval;
-    constructor({ host, port, connectionRetryInterval, logger, onConnectionStateChanged, }: INaiveSocketOptions);
-    send: (request: ISendWorkArguments & Partial<ISendWorkOptions>) => Promise<string>;
+    constructor({ host, port, connectionRetryInterval, logger, onConnectionStateChanged, }: NaiveSocketOptions);
+    send: (request: SendWorkArguments & Partial<SendWorkOptions>) => Promise<string>;
     disconnect: () => void;
     private buildSendWork;
     private changeConnectionState;

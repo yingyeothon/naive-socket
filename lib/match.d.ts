@@ -8,5 +8,5 @@ export default class TextMatch {
     values(): string[];
     evaluate(): number;
 }
-export declare type TextMatchChain = (m: TextMatch) => TextMatch;
+export type TextMatchChain = (m: TextMatch) => TextMatch;
 export declare const withMatch: (check: TextMatchChain) => (buffer: string) => number;

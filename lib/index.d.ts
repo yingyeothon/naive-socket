@@ -3,7 +3,7 @@ interface Logger {
     warn: typeof console.warn;
     error: typeof console.error;
 }
-declare type ConnectionStateListener = (params: {
+type ConnectionStateListener = (params: {
     socket: NaiveSocket;
     state: ConnectionState;
 }) => void;

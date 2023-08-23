@@ -55,7 +55,7 @@ interface SendWorkArguments {
 
 interface SendWorkInternal {
   dPromise: DecomposedPromise<string>;
-  timer: NodeJS.Timer | null;
+  timer: NodeJS.Timeout | null;
 }
 
 interface ISendWork

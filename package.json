@@ -1,6 +1,6 @@
 {
   "name": "@yingyeothon/naive-socket",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "A naive TCP Socket library to send and receive with the opposite.",
   "repository": "https://github.com/yingyeothon/naive-socket",
   "author": "jaeyoung.choi <lactrious@gmail.com>",
